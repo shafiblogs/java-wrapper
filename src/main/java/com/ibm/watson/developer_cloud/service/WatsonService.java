@@ -344,7 +344,7 @@ public abstract class WatsonService {
 	 * @return the user agent
 	 */
 	private final String getUserAgent() {
-		return "watson-developer-cloud-java-wrapper-1.0.3";
+		return "watson-developer-cloud-java-wrapper-1.1.0";
 	}
 
 	/**
@@ -380,6 +380,11 @@ public abstract class WatsonService {
 		apiKey = new String(Base64.encodeBase64(auth.getBytes()));
 	}
 
+	/**
+	 * Sets the authentication.
+	 *
+	 * @param request the new authentication
+	 */
 	protected void setAuthentication(HttpRequestBase request){
 		if (getApiKey() == null)
 			throw new IllegalArgumentException(

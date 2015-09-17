@@ -1,6 +1,6 @@
 # Watson Developer Cloud Java Wrapper
 [![Build Status](https://secure.travis-ci.org/watson-developer-cloud/java-wrapper.png)](http://travis-ci.org/watson-developer-cloud/java-wrapper)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.ibm.watson.developer_cloud/java-wrapper/badge.svg)](https://maven-badges.herokuapp.com/maven-central/cz.jirutka.rsql/rsql-parser)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.ibm.watson.developer_cloud/java-wrapper/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.ibm.watson.developer_cloud/java-wrapper)
 [![Coverage Status](https://coveralls.io/repos/watson-developer-cloud/java-wrapper/badge.svg?branch=master&service=github)](https://coveralls.io/github/watson-developer-cloud/java-wrapper?branch=master)
 
 Java code wrappers to quickly get started with the various [Watson Developer Cloud][wdc] services - A collection of REST APIs and SDKs that use cognitive computing to solve complex problems.
@@ -13,10 +13,15 @@ Java code wrappers to quickly get started with the various [Watson Developer Clo
       * [Gradle](#gradle)
     * [Usage](#usage)
     * [Getting the Service Credentials](#getting-the-service-credentials)
+	* [Alchemy Services](#alchemy-services)
+      * [Alchemy Language](#alchemy-language)
+      * [Alchemy Vision](#alchemy-vision)
+      * [Alchemy Data News](#alchemy-data-news)
     * [IBM Watson Services](#ibm-watson-services)
       * [Concept Expansion](#concept-expansion)
       * [Concept Insights](#concept-insights)
       * [Dialog](#dialog)
+      * [Document Conversion](#document-conversion)
       * [Language Identification](#language-identification)
       * [Language Translation](#language-translation)
       * [Machine Translation](#machine-translation)
@@ -48,20 +53,20 @@ or [Stack Overflow](http://stackoverflow.com/questions/ask?tags=ibm-watson).
 ## Installation
 
 Download the [jar][releases], and add it to your project.  
-Now, you are ready to see some [examples](https://github.com/watson-developer-cloud/java-wrapper/tree/master/src/main/examples/java/com/ibm/watson/developer_cloud).
+Now, you are ready to see some [examples](https://github.com/watson-developer-cloud/java-wrapper/tree/master/examples/java/com/ibm/watson/developer_cloud).
 
 ##### Maven
 ```xml
 <dependency>
 	<groupId>com.ibm.watson.developer_cloud</groupId>
 	<artifactId>java-wrapper</artifactId>
-	<version>1.0.3</version>
+	<version>1.1.0</version>
 </dependency>
 ```
 ##### Gradle
 
 ```gradle
-'com.ibm.watson.developer_cloud:java-wrapper:1.0.3'
+'com.ibm.watson.developer_cloud:java-wrapper:1.1.0'
 ```
 
 ## Usage
@@ -80,6 +85,54 @@ The credentials for the services are stored in the
 to first create and bind the service to your application.
 
 You will need the `username` and `password` credentials for each service these are *not* your Bluemix credentials, and are found in the VCAP_SERVICES variable on Bluemix, and they are different for each service.
+
+## Alchemy APIs
+
+### Alchemy Language
+[Alchemy Language][alchemy_language] offers 12 API functions as part of its text analysis service, each of which uses sophisticated natural language processing techniques to analyze your content and add high-level semantic information.
+
+Use the [Sentiment Analysis][sentiment_analysis] endpoint to identify positive/negative sentiment within a sample text document.
+
+```java
+AlchemyLanguage service = new AlchemyLanguage();
+service.setApiKey("<api_key>");
+
+Map<String,Object> params = new HashMap<String, Object>();
+params.put(AlchemyLanguage.TEXT, "IBM Watson won the Jeopardy television show hosted by Alex Trebek");
+DocumentSentiment sentiment =  service.getSentiment(params);
+
+System.out.println(sentiment);
+```
+
+### Alchemy Vision
+[Alchemy Vision][alchemy_vision] uses deep learning innovations to understand a picture's content and context. It sees complex visual scenes in their entirety —without needing any textual clues— leveraging a holistic approach to understanding the multiple objects and surroundings.
+
+Example: Extract keywords from an image.
+
+```java
+AlchemyVision service = new AlchemyVision();
+service.setApiKey("<api_key>");
+
+Map<String,Object> params = new HashMap<String, Object>();
+params.put(AlchemyVision.IMAGE, new File("src/test/resources/obama.jpg"));
+ImageKeywords keywords =  service.getImageKeywords(params);
+
+System.out.println(keywords);
+
+```
+
+### Alchemy Data News
+[Alchemy Data News][alchemy_data_news] indexes 250k to 300k English language news and blog articles every day with historical search available for the past 60 days.
+Example: Get the volume data from the last 7 days using 12hs of time slice.
+
+```java
+AlchemyDataNews service = new AlchemyDataNews();
+service.setApiKey("<api_key>");
+
+VolumeResult result = service.getVolume("now-7d", "now", "12h");
+
+System.out.println(result);
+```
 
 ## IBM Watson Services
 The Watson Developer Cloud offers a variety of services for building cognitive
@@ -118,7 +171,7 @@ System.out.println(service.getJobResult(job));
 ### Concept Insights
 Use the Concept Insights service to identify words in the text that
 correspond to concepts in a Wikipedia graph.
-```
+```java
 import com.ibm.watson.developer_cloud.concept_insights.v2.ConceptInsights;
 import com.ibm.watson.developer_cloud.concept_insights.v2.model.Annotations;
 
@@ -148,6 +201,28 @@ service.setUsernameAndPassword("<username>", "<password>");
 
 List<Dialog> dialogs = service.getDialogs();
 System.out.println(dialogs);
+```
+
+
+
+### Document Conversion
+The [Document Conversion][document_conversion] service allows to convert pdf, word, and html documents into formats useful to other Watson Cognitive services. Target formats include normalized html, plain text, and sets of potential answers for Watson question answering. You can convert documents synchronously one at a time, or asynchronously in batches
+
+Returns the document list using the [Document Conversion][document_conversion] service.
+
+```java
+import com.ibm.watson.developer_cloud.document_conversion.v1.DocumentConversion;
+import com.ibm.watson.developer_cloud.document_conversion.v1.model.DocumentCollection;
+import java.util.HashMap;
+import java.util.Map;
+
+DocumentConversion service = new DocumentConversion();
+service.setUsernameAndPassword("<username>", "<password>");
+
+Map<String, Object> docListParams = new HashMap<String, Object>();
+docListParams.put(DocumentConversion.LIMIT, 10);
+DocumentCollection documentCollection = service.getDocumentCollection(docListParams);
+System.out.println(documentCollection);
 ```
 
 ### Language Identification
@@ -501,6 +576,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 [language_identification]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/lidapi/
 [machine_translation]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/mtapi/
 [concept_expansion]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/glimpseapi/
+[document_conversion]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/document-conversion/
 [relationship_extraction]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/sireapi/
 [language_translation]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/language-translation/
 [visual_recognition]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/visual-recognition/
@@ -510,6 +586,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 [tone-analyzer]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/tone-analyzer/
 [dialog]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/dialog/
 [concept-insights]: https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/concept-insights/
+
+[alchemy_language]: http://www.alchemyapi.com/products/alchemylanguage
+[sentiment_analysis]: http://www.alchemyapi.com/products/alchemylanguage/sentiment-analysis
+
+[alchemy_vision]: http://www.alchemyapi.com/products/alchemyvision
+[alchemy_data_news]: http://www.alchemyapi.com/products/alchemydata-news
 
 [wdc]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/
 [vcap_environment]: http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/index.html#EnvVars

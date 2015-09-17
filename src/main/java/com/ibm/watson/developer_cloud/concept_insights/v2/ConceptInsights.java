@@ -1,21 +1,18 @@
-/*
- * *
- *  * Copyright 2015 IBM Corp. All Rights Reserved.
- *  *
- *  * Licensed under the Apache License, Version 2.0 (the "License");
- *  * you may not use this file except in compliance with the License.
- *  * You may obtain a copy of the License at
- *  *
- *  *      http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS,
- *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  * See the License for the specific language governing permissions and
- *  * limitations under the License.
+/**
+ * Copyright 2015 IBM Corp. All Rights Reserved.
  *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package com.ibm.watson.developer_cloud.concept_insights.v2;
 
 import com.google.gson.JsonArray;
@@ -25,6 +22,7 @@ import com.ibm.watson.developer_cloud.concept_insights.v2.model.*;
 import com.ibm.watson.developer_cloud.service.Request;
 import com.ibm.watson.developer_cloud.service.WatsonService;
 import com.ibm.watson.developer_cloud.util.*;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
 
@@ -293,50 +291,42 @@ public class ConceptInsights extends WatsonService {
 	 *
      * @return {@link QueryConcepts}
      */
-    @SuppressWarnings("unchecked")
     public QueryConcepts conceptualSearch(Map<String, Object> parameters) {
         Validate.notNull(parameters.get(ACCOUNT_ID), "account_id can't be null");
         Validate.notNull(parameters.get(CORPUS), "corpus can't be null");
         Validate.notNull(parameters.get(IDS), "ids can't be null");
 
         String corpusId = createCorpusIdPath((String) parameters.get(ACCOUNT_ID), (String) parameters.get(CORPUS));
-        Request request = Request.Get(corpusId + CONCEPTUAL_SEARCH_PATH);
+        Map<String,Object> queryParams = new HashMap<String, Object>();
         String[] queryParameters = new String[]{CURSOR, LIMIT};
 
         for (String param : queryParameters) {
             if (parameters.containsKey(param))
-                request.withQuery(param, parameters.get(param));
+              queryParams.put(param, parameters.get(param));
         }
 
         JsonArray IdsJsonArray = new JsonArray();
-        for (String value : (List<String>) parameters.get(IDS)) {
+        @SuppressWarnings("unchecked")
+		List<String> ids = (List<String>) parameters.get(IDS);
+		for (String value : ids) {
             IdsJsonArray.add(new JsonPrimitive(value));
         }
+        queryParams.put(IDS, IdsJsonArray.toString());
 
-        request.withQuery(IDS, IdsJsonArray.toString());
 
         if (parameters.get(CONCEPT_FIELDS) != null) {
             RequestedFields fields = (RequestedFields) parameters.get(CONCEPT_FIELDS);
             if (fields != null && fields.getFields() != null && !fields.getFields().isEmpty())
-                request.withQuery(CONCEPT_FIELDS, fields.toString());
+                queryParams.put(CONCEPT_FIELDS, fields.toString());
         }
 
         if (parameters.get(DOCUMENT_FIELDS) != null) {
             RequestedFields fields = (RequestedFields) parameters.get(DOCUMENT_FIELDS);
             if (fields != null && fields.getFields() != null && !fields.getFields().isEmpty())
-                request.withQuery(DOCUMENT_FIELDS, fields.toString());
+                queryParams.put(DOCUMENT_FIELDS, fields.toString());
         }
 
-        HttpRequestBase requestBase = request.build();
-
-        try {
-            HttpResponse response = execute(requestBase);
-            String jsonString = ResponseUtil.getString(response);
-            QueryConcepts concepts = GsonSingleton.getGson().fromJson(jsonString, QueryConcepts.class);
-            return concepts;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(corpusId + CONCEPTUAL_SEARCH_PATH,queryParams,QueryConcepts.class);
     }
 
     /**
@@ -344,9 +334,8 @@ public class ConceptInsights extends WatsonService {
      *
      * @param accountId String the Account identifier,
      * @param corpus    String the corpus name.
-     * @return The created {@link Corpus}.
      */
-    public Corpus createCorpus(final String accountId, final Corpus corpus) {
+    public void createCorpus(final String accountId, final Corpus corpus) {
         Validate.notNull(accountId, "account_id can't be null");
         Validate.notNull(corpus, "corpus can't be null");
         Validate.notNull(corpus.getId(), "corpus.id can't be null");
@@ -354,8 +343,6 @@ public class ConceptInsights extends WatsonService {
         HttpRequestBase request = Request.Put(createCorpusIdPath(accountId, corpus.getId()))
                 .withContent(GsonSingleton.getGson().toJson(corpus), MediaType.APPLICATION_JSON).build();
         executeWithoutResponse(request);
-
-        return corpus;
     }
 
     /**
@@ -415,17 +402,7 @@ public class ConceptInsights extends WatsonService {
      * @return the {@link Accounts}
      */
     public Accounts getAccountsInfo() {
-        Request request = Request.Get(ACCOUNTS_PATH);
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Accounts accounts = GsonSingleton.getGson().fromJson(
-                    jsonObject, Accounts.class);
-            return accounts;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+       return executeRequest(ACCOUNTS_PATH,null,Accounts.class);
     }
 
     /**
@@ -438,49 +415,14 @@ public class ConceptInsights extends WatsonService {
      * <li> String graph - The graph name.<br>
      * <li> String concept - The concept name.<br>
      * </ul>
-     * @return {@link ConceptMetaData}
+     * @return {@link ConceptMetadata}
      */
-    public ConceptMetaData getConcept(Map<String, Object> parameters) {
+    public ConceptMetadata getConcept(Map<String, Object> parameters) {
         Validate.notNull(parameters.get(ACCOUNT_ID), "account_id can't be null");
         Validate.notNull(parameters.get(GRAPH), "graph can't be null");
         Validate.notNull(parameters.get(CONCEPT), "concept can't be null");
         String conceptId = createConceptIdPath((String) parameters.get(ACCOUNT_ID), (String) parameters.get(GRAPH), (String) parameters.get(CONCEPT));
-
-        HttpRequestBase request = Request.Get(conceptId).build();
-
-        try {
-            HttpResponse response = execute(request);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            ConceptMetaData conceptMetaData = GsonSingleton.getGson().fromJson(
-                    jsonObject, ConceptMetaData.class);
-            return conceptMetaData;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Gets the concept by label.
-     *
-     * @param resourcePath    the resource path
-     * @param queryParameters the query parameters
-     * @return the concept by label
-     */
-    private Matches getConceptByLabel(String resourcePath, Map<String, Object> queryParameters) {
-        Request request = Request.Get(resourcePath);
-        for (Map.Entry<String, Object> entry : queryParameters.entrySet()) {
-            request.withQuery(entry.getKey(), entry.getValue());
-        }
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Matches matches = GsonSingleton.getGson().fromJson(
-                    jsonObject, Matches.class);
-            return matches;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(conceptId,null,ConceptMetadata.class);
     }
 
     /**
@@ -493,15 +435,7 @@ public class ConceptInsights extends WatsonService {
     public Corpus getCorpus(final String accountId, final String corpusName) {
         Validate.notNull(accountId, "accountId can't be null");
         Validate.notNull(corpusName, "corpusName can't be null");
-        HttpRequestBase request = Request.Get(createCorpusIdPath(accountId, corpusName)).build();
-        try {
-            HttpResponse response = execute(request);
-            String jsonString = ResponseUtil.getString(response);
-            Corpus result = GsonSingleton.getGson().fromJson(jsonString, Corpus.class);
-            return result;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(createCorpusIdPath(accountId, corpusName),null,Corpus.class);
     }
 
     /**
@@ -514,17 +448,7 @@ public class ConceptInsights extends WatsonService {
     public CorpusProcessingState getCorpusProcessingState(final String accountId, final String corpusName) {
         Validate.notNull(accountId, "accountId can't be null");
         Validate.notNull(corpusName, "corpusName can't be null");
-        HttpRequestBase request = Request.Get(createCorpusIdPath(accountId, corpusName) + PROCESSING_STATE_PATH)
-                .build();
-        try {
-            HttpResponse response = execute(request);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            CorpusProcessingState corpusProcessingState = GsonSingleton.getGson().fromJson(
-                    jsonObject, CorpusProcessingState.class);
-            return corpusProcessingState;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(createCorpusIdPath(accountId, corpusName) + PROCESSING_STATE_PATH,null,CorpusProcessingState.class);
     }
 
     /**
@@ -559,7 +483,7 @@ public class ConceptInsights extends WatsonService {
             if (fields != null && fields.getFields() != null && !fields.getFields().isEmpty())
                 queryParameters.put(CONCEPT_FIELDS, fields.toString());
         }
-        return getRelatedConcepts(corpusId + RELATED_CONCEPTS_PATH, queryParameters);
+        return executeRequest(corpusId + RELATED_CONCEPTS_PATH, queryParameters, Concepts.class);
     }
 
     /**
@@ -592,7 +516,7 @@ public class ConceptInsights extends WatsonService {
         }
         contentJson.add(CONCEPTS, conceptsJson);
         queryParameters.put(CONCEPTS, conceptsJson.toString());
-        return getRelationScores(corpusId + RELATION_SCORES_PATH, queryParameters);
+        return executeRequest(corpusId + RELATION_SCORES_PATH, queryParameters, Scores.class);
     }
 
     /**
@@ -605,16 +529,7 @@ public class ConceptInsights extends WatsonService {
     public CorpusStats getCorpusStats(final String accountId, final String corpusName) {
         Validate.notNull(accountId, "accountId can't be null");
         Validate.notNull(corpusName, "corpusName can't be null");
-        HttpRequestBase request = Request.Get(createCorpusIdPath(accountId, corpusName) + STATS_PATH).build();
-        try {
-            HttpResponse response = execute(request);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            CorpusStats corpusStats = GsonSingleton.getGson().fromJson(
-                    jsonObject, CorpusStats.class);
-            return corpusStats;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(createCorpusIdPath(accountId, corpusName) + STATS_PATH,null,CorpusStats.class);
     }
 
     /**
@@ -630,17 +545,7 @@ public class ConceptInsights extends WatsonService {
         Validate.notNull(corpusName, "corpusName can't be null");
         Validate.notNull(documentName, "documentName can't be null");
 
-        Request request = Request.Get(createDocumentIdPath(accountId, corpusName, documentName));
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Document result = GsonSingleton.getGson().fromJson(
-                    jsonObject, Document.class);
-            return result;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(createDocumentIdPath(accountId, corpusName, documentName),null,Document.class);
     }
 
     /**
@@ -657,18 +562,7 @@ public class ConceptInsights extends WatsonService {
         Validate.notNull(documentName, "documentName can't be null");
 
         String documentId = createDocumentIdPath(accountId, corpusName, documentName);
-
-        Request request = Request.Get(documentId + ANNOTATIONS_PATH);
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            String jsonString = ResponseUtil.getString(response);
-            DocumentAnnotations documents = GsonSingleton.getGson().fromJson(
-                    jsonString, DocumentAnnotations.class);
-            return documents;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(documentId + ANNOTATIONS_PATH,null,DocumentAnnotations.class);
     }
 
     /**
@@ -677,25 +571,15 @@ public class ConceptInsights extends WatsonService {
      * @param accountId    String the account identifier,
      * @param corpusName   String the corpus name,
      * @param documentName String the document name.
-     * @return {@link DocumentProcessingState}
+     * @return {@link DocumentProcessingStatus}
      */
-    public DocumentProcessingState getDocumentProcessingState(final String accountId, final String corpusName, final String documentName) {
+    public DocumentProcessingStatus getDocumentProcessingState(final String accountId, final String corpusName, final String documentName) {
         Validate.notNull(accountId, "accountId can't be null");
         Validate.notNull(corpusName, "corpusName can't be null");
         Validate.notNull(documentName, "documentName can't be null");
 
         String documentId = createDocumentIdPath(accountId, corpusName, documentName);
-        HttpRequestBase request = Request.Get(documentId + PROCESSING_STATE_PATH).build();
-
-        try {
-            HttpResponse response = execute(request);
-            String jsonString = ResponseUtil.getString(response);
-            DocumentProcessingState documentProcessingState = GsonSingleton.getGson().fromJson(
-                    jsonString, DocumentProcessingState.class);
-            return documentProcessingState;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(documentId + PROCESSING_STATE_PATH,null,DocumentProcessingStatus.class);
     }
 
     /**
@@ -732,7 +616,7 @@ public class ConceptInsights extends WatsonService {
             if (fields != null && fields.getFields() != null && !fields.getFields().isEmpty())
                 queryParams.put(CONCEPT_FIELDS, fields.toString());
         }
-        return getRelatedConcepts(documentId + RELATED_CONCEPTS_PATH, queryParams);
+        return executeRequest(documentId + RELATED_CONCEPTS_PATH, queryParams, Concepts.class);
     }
 
     /**
@@ -767,7 +651,7 @@ public class ConceptInsights extends WatsonService {
         }
         contentJson.add(CONCEPTS, conceptsJson);
         queryParams.put(CONCEPTS, conceptsJson.toString());
-        return getRelationScores(documentId + RELATION_SCORES_PATH, queryParams);
+        return executeRequest(documentId + RELATION_SCORES_PATH, queryParams, Scores.class);
     }
 
     /**
@@ -785,9 +669,8 @@ public class ConceptInsights extends WatsonService {
      * </ul>
      * @return {@link Concepts}
      */
-    @SuppressWarnings("unchecked")
     public Concepts getGraphsRelatedConcepts(Map<String, Object> parameters) {
-        //TODO we may need to divide into 2 methods
+        //TODO: we may need to divide this into 2 methods
         Validate.notNull(parameters.get(ACCOUNT_ID), "account_id can't be null");
         Validate.notNull(parameters.get(GRAPH), "graph can't be null");
         if (parameters.get(CONCEPTS) == null && parameters.get(CONCEPT) == null)
@@ -808,15 +691,17 @@ public class ConceptInsights extends WatsonService {
         if (parameters.get(CONCEPTS) != null) {
             JsonObject contentJson = new JsonObject();
             JsonArray conceptsJson = new JsonArray();
-            for (String value : (List<String>) parameters.get(CONCEPTS)) {
+            @SuppressWarnings("unchecked")
+			List<String> concepts = (List<String>) parameters.get(CONCEPTS);
+			for (String value : concepts) {
                 conceptsJson.add(new JsonPrimitive(value));
             }
             contentJson.add(CONCEPTS, conceptsJson);
             queryParameters.put(CONCEPTS, conceptsJson.toString());
-            return getRelatedConcepts(graphId + RELATED_CONCEPTS_PATH, queryParameters);
+            return executeRequest(graphId + RELATED_CONCEPTS_PATH, queryParameters, Concepts.class);
         } else {
             String conceptId = createConceptIdPath((String) parameters.get(ACCOUNT_ID), (String) parameters.get(GRAPH), (String) parameters.get(CONCEPT));
-            return getRelatedConcepts(conceptId + RELATED_CONCEPTS_PATH, queryParameters);
+            return executeRequest(conceptId + RELATED_CONCEPTS_PATH, queryParameters, Concepts.class);
         }
     }
 
@@ -835,7 +720,6 @@ public class ConceptInsights extends WatsonService {
 	 *
      * @return {@link Scores}
      */
-    @SuppressWarnings("unchecked")
     public Scores getGraphsRelationScores(Map<String, Object> parameters) {
         Validate.notNull(parameters.get(ACCOUNT_ID), "account_id can't be null");
         Validate.notNull(parameters.get(GRAPH), "graph can't be null");
@@ -847,61 +731,15 @@ public class ConceptInsights extends WatsonService {
         Map<String, Object> queryParameters = new HashMap<String, Object>();
         JsonObject contentJson = new JsonObject();
         JsonArray conceptsJson = new JsonArray();
-        for (String value : (List<String>) parameters.get(CONCEPTS)) {
+        @SuppressWarnings("unchecked")
+		List<String> concepts = (List<String>) parameters.get(CONCEPTS);
+		for (String value : concepts) {
             conceptsJson.add(new JsonPrimitive(value));
         }
         contentJson.add(CONCEPTS, conceptsJson);
         queryParameters.put(CONCEPTS, conceptsJson.toString());
 
-        return getRelationScores(conceptId + RELATION_SCORES_PATH, queryParameters);
-    }
-
-    /**
-     * Gets the related concepts.
-     *
-     * @param resourcePath    the resource path
-     * @param queryParameters the query parameters
-     * @return the related concepts
-     */
-    private Concepts getRelatedConcepts(String resourcePath, Map<String, Object> queryParameters) {
-        Request request = Request.Get(resourcePath);
-        for (Map.Entry<String, Object> entry : queryParameters.entrySet()) {
-            request.withQuery(entry.getKey(), entry.getValue());
-        }
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Concepts concepts = GsonSingleton.getGson().fromJson(
-                    jsonObject, Concepts.class);
-            return concepts;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Gets the relation scores.
-     *
-     * @param resourcePath    the resource path
-     * @param queryParameters the query parameters
-     * @return the relation scores
-     */
-    private Scores getRelationScores(String resourcePath, Map<String, Object> queryParameters) {
-        Request request = Request.Get(resourcePath);
-        for (Map.Entry<String, Object> entry : queryParameters.entrySet()) {
-            request.withQuery(entry.getKey(), entry.getValue());
-        }
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Scores scores = GsonSingleton.getGson().fromJson(
-                    jsonObject, Scores.class);
-            return scores;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(conceptId + RELATION_SCORES_PATH, queryParameters, Scores.class);
     }
 
     /**
@@ -910,17 +748,7 @@ public class ConceptInsights extends WatsonService {
      * @return {@link Corpora}
      */
     public Corpora listCorpora() {
-
-        HttpRequestBase request = Request.Get(CORPORA_PATH).build();
-        try {
-            HttpResponse response = execute(request);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Corpora corpora = GsonSingleton.getGson().fromJson(
-                    jsonObject, Corpora.class);
-            return corpora;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(CORPORA_PATH,null,Corpora.class);
     }
 
     /**
@@ -931,16 +759,7 @@ public class ConceptInsights extends WatsonService {
      */
     public Corpora listCorpora(String accountId) {
         Validate.notNull(accountId, "account_id can't be null");
-        HttpRequestBase request = Request.Get(CORPORA_PATH + FORWARD_SLASH + accountId).build();
-
-        try {
-            HttpResponse response = execute(request);
-            String jsonString = ResponseUtil.getString(response);
-            Corpora corpora = GsonSingleton.getGson().fromJson(jsonString, Corpora.class);
-            return corpora;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(CORPORA_PATH + FORWARD_SLASH + accountId,null,Corpora.class);
     }
 
     /**
@@ -952,45 +771,34 @@ public class ConceptInsights extends WatsonService {
 	 * <li> String account_id - The account identifier.<br>
 	 * <li> String corpus - The corpus name.<br>
 	 * <li> String concept - The concept name.<br>
-	 * <li> String query - JSON object that allows to filter the list of documents.
+	 * <li> String query - For query syntax see <a href="http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/concept_insights.html">API Explorer</a>.<br> JSON object that allows to filter the list of documents.
 	 * Valid values are {"status":"error"}, {"status":"processing"},
-	 * and {"status":"ready"} which allow to filter documents by status<br>
+	 * and {"status":"ready"} which allow to filter documents by status.<br>
 	 * <li> Integer cursor - The number of possible items to return.
 	 * Specify '0' to return the maximum value of 100,000...<br>
 	 * <li> Integer limit - The number of possible concepts to return..<br>
 	 * </ul>
-	 *
+	 * 
      * @return {@link Documents}
      */
-    @SuppressWarnings("unchecked")
     public Documents listDocuments(Map<String, Object> parameters) {
         Validate.notNull(parameters.get(ACCOUNT_ID), "account_id can't be null");
         Validate.notNull(parameters.get(CORPUS), "corpus can't be null");
-
-        Request request = Request.Get(createCorpusIdPath((String) parameters.get(ACCOUNT_ID),
-                (String) parameters.get(CORPUS)) + DOCUMENTS);
-
-        String[] queryParameters = new String[]{CURSOR, LIMIT};
-        for (String param : queryParameters) {
+        Map<String, Object> queryParameters = new HashMap<String, Object>();
+        String[] queryParams = new String[]{CURSOR, LIMIT};
+        for (String param : queryParams) {
             if (parameters.containsKey(param)) {
-                request.withQuery(param, parameters.get(param));
+                queryParameters.put(param, parameters.get(param));
             }
         }
-
         if (parameters.get(QUERY) != null) {
-            // TODO we may need to work in the query format,for now we do expect the user passes the query parameter String formatted as documented in Consept Insights.
-            request.withQuery(QUERY, parameters.get(QUERY));
+            // TODO we may need to work in the query format,for now we do expect 
+        	// the query parameter String formatted as documented in Concept Insights.
+            queryParameters.put(QUERY, parameters.get(QUERY));
         }
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Documents documents = GsonSingleton.getGson().fromJson(
-                    jsonObject, Documents.class);
-            return documents;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+
+        return executeRequest(createCorpusIdPath((String) parameters.get(ACCOUNT_ID),
+                (String) parameters.get(CORPUS)) + DOCUMENTS,queryParameters,Documents.class);
     }
 
     /**
@@ -999,17 +807,7 @@ public class ConceptInsights extends WatsonService {
      * @return the {@link Graphs}
      */
     public Graphs listGraphs() {
-        Request request = Request.Get(GRAPHS_PATH);
-        HttpRequestBase requestBase = request.build();
-        try {
-            HttpResponse response = execute(requestBase);
-            JsonObject jsonObject = ResponseUtil.getJsonObject(response);
-            Graphs graphs = GsonSingleton.getGson().fromJson(
-                    jsonObject, Graphs.class);
-            return graphs;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return executeRequest(GRAPHS_PATH,null,Graphs.class);
     }
 
     /**
@@ -1055,7 +853,7 @@ public class ConceptInsights extends WatsonService {
             if (fields != null && fields.getFields() != null && !fields.getFields().isEmpty())
                 queryParameters.put(DOCUMENT_FIELDS, fields.toString());
         }
-        return getConceptByLabel(corpusId + LABEL_SEARCH_PATH, queryParameters);
+        return executeRequest(corpusId + LABEL_SEARCH_PATH, queryParameters, Matches.class);
     }
 
     /**
@@ -1071,7 +869,7 @@ public class ConceptInsights extends WatsonService {
 	 * <li> Integer limit - The maximum number of items to be returned.<br>
 	 * <li> RequestedFields concept_fields - An additional fields to include in the concept objects.<br>
 	 * </ul>
-	 * @return the matches
+	 * @return {@link Matches}
 	 */
     public Matches searchGraphsConceptByLabel(Map<String, Object> parameters) {
         Validate.notNull(parameters.get(ACCOUNT_ID), "account_id can't be null");
@@ -1092,7 +890,7 @@ public class ConceptInsights extends WatsonService {
             if (fields != null && fields.getFields() != null && !fields.getFields().isEmpty())
                 queryParameters.put(CONCEPT_FIELDS, fields.toString());
         }
-        return getConceptByLabel(graph_id + LABEL_SEARCH_PATH, queryParameters);
+        return executeRequest(graph_id + LABEL_SEARCH_PATH, queryParameters, Matches.class);
     }
 
     /**
@@ -1100,9 +898,8 @@ public class ConceptInsights extends WatsonService {
      *
      * @param accountId String the Account identifier.
      * @param corpus    {@link Corpus} the corpus to update.
-     * @return The updated {@link Corpus}.
      */
-    public Corpus updateCorpus(final String accountId, final Corpus corpus) {
+    public void updateCorpus(final String accountId, final Corpus corpus) {
         Validate.notNull(accountId, "account_id can't be null");
         Validate.notNull(corpus, "corpus can't be null");
         Validate.notNull(corpus.getId(), "corpus.id can't be null");
@@ -1110,8 +907,6 @@ public class ConceptInsights extends WatsonService {
         HttpRequestBase request = Request.Post(createCorpusIdPath(accountId, corpus.getId()))
                 .withContent(GsonSingleton.getGson().toJson(corpus), MediaType.APPLICATION_JSON).build();
         executeWithoutResponse(request);
-
-        return corpus;
     }
 
     /**
@@ -1133,4 +928,28 @@ public class ConceptInsights extends WatsonService {
         executeWithoutResponse(request);
     }
 
+    /**
+     * Execute the request and return the POJO that represent the response.
+     *
+     * @param <T>             The POJO that represents the response object
+     * @param resourcePath    the resource path
+     * @param params          the request parameters
+     * @param returnType      the POJO class to be parsed from the response
+     * @return the POJO object that represent the response
+     */
+    private <T> T executeRequest(String resourcePath, Map<String, Object> params,  Class<T> returnType) {
+        Request request = Request.Get(resourcePath);
+        if(params!=null && !params.isEmpty()) {
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                request.withQuery(entry.getKey(), entry.getValue());
+            }
+        }
+        HttpRequestBase requestBase = request.build();
+        try {
+            HttpResponse response = execute(requestBase);
+            return ResponseUtil.getObject(response, returnType);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
